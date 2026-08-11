@@ -1,0 +1,244 @@
+/* ------------------------------
+   Modern NutriTrack UI Upgrade
+   ------------------------------ */
+
+/* Fonts & Root */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+:root {
+  --bg: #f4f7f9;
+  --card-bg: #ffffff;
+  --text: #111827;
+  --text-light: #6b7280;
+  --primary: #2563eb;
+  --primary-hover: #1e4fcf;
+  --radius: 12px;
+  --shadow: 0 8px 20px rgba(0,0,0,0.06);
+  --trans: .25s ease;
+
+  /* Dark mode variables */
+  --bg-dark: #0f172a;
+  --card-dark: #1e293b;
+  --text-dark: #e2e8f0;
+  --text-dark-light: #94a3b8;
+}
+
+body {
+  margin: 0;
+  font-family: Inter, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  transition: var(--trans);
+}
+
+/* DARK MODE */
+body.dark {
+  background: var(--bg-dark);
+  color: var(--text-dark);
+}
+
+body.dark .card {
+  background: var(--card-dark);
+  color: var(--text-dark);
+}
+
+body.dark .nav, body.dark .sidebar {
+  background: #111827;
+  color: #fff;
+}
+
+body.dark input, body.dark select {
+  background: #1e293b;
+  color: #e2e8f0;
+  border-color: #334155;
+}
+
+/* Layout */
+.app {
+  max-width: 1320px;
+  margin: auto;
+  padding: 20px;
+}
+
+/* Navbar */
+.nav {
+  display: flex;
+  justify-content: space-between;
+  padding: 16px 20px;
+  background: #fff;
+  border-radius: var(--radius);
+  margin-bottom: 16px;
+  box-shadow: var(--shadow);
+  position: sticky;
+  top: 10px;
+  z-index: 20;
+}
+body.dark .nav {
+  background: #1e293b;
+}
+
+.nav .brand {
+  font-weight: 700;
+  font-size: 20px;
+}
+
+.nav button {
+  background: transparent;
+  border: none;
+  margin-left: 10px;
+  font-size: 15px;
+  padding: 8px 14px;
+  cursor: pointer;
+  border-radius: var(--radius);
+  transition: var(--trans);
+}
+
+.nav button:hover {
+  background: var(--primary);
+  color: #fff;
+}
+
+/* Sidebar */
+.sidebar {
+  width: 240px;
+  padding: 20px;
+  border-radius: var(--radius);
+  background: var(--card-bg);
+  box-shadow: var(--shadow);
+  height: fit-content;
+}
+
+.side-item {
+  padding: 10px 0;
+  cursor: pointer;
+  color: var(--text-light);
+  font-size: 15px;
+  transition: var(--trans);
+}
+.side-item:hover {
+  color: var(--primary);
+}
+
+/* Cards */
+.card {
+  background: var(--card-bg);
+  padding: 24px;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  transition: var(--trans);
+}
+.card:hover {
+  transform: translateY(-3px);
+}
+
+.card-small {
+  padding: 18px;
+}
+
+.header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* Grid */
+.grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+/* Buttons */
+button {
+  background: var(--primary);
+  border: none;
+  padding: 12px 20px;
+  color: #fff;
+  font-weight: 600;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: var(--trans);
+}
+
+button:hover {
+  background: var(--primary-hover);
+}
+
+/* Inputs */
+input, select {
+  padding: 12px 12px;
+  border-radius: var(--radius);
+  border: 1px solid #d1d5db;
+  width: 100%;
+  font-size: 15px;
+  margin-bottom: 10px;
+}
+
+input:focus, select:focus {
+  border-color: var(--primary);
+  outline: none;
+}
+
+/* Food items */
+.food-item, .exercise-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px;
+  border-radius: var(--radius);
+  background: var(--card-bg);
+  box-shadow: var(--shadow);
+  margin-bottom: 10px;
+  transition: var(--trans);
+}
+
+.food-item:hover, .exercise-item:hover {
+  transform: translateX(4px);
+}
+
+/* Auth Screens */
+.auth-screen {
+  display: flex;
+  height: 100vh;
+}
+
+.auth-left {
+  flex: 1;
+  background-size: cover;
+  background-position: center;
+  padding: 40px;
+  color: white;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+.auth-right {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.form {
+  min-width: 360px;
+}
+
+/* Smooth fade animations */
+.fade {
+  animation: fadeIn .35s ease;
+}
+@keyframes fadeIn {
+  from {opacity: 0;}
+  to {opacity: 1;}
+}
+
+/* Dark mode toggle button */
+#themeToggle {
+  background: #000;
+  color: #fff;
+  padding: 6px 10px;
+  border-radius: 50%;
+  margin-left: 12px;
+  cursor: pointer;
+}

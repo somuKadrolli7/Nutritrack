@@ -9,6 +9,10 @@ router.get('/search',       ctrl.searchFoods);
 router.get('/featured',     ctrl.getFeaturedFoods);
 router.get('/weekly-stats', ctrl.getWeeklyStats);
 
+// Image recognition & Barcode
+router.post('/recognize-food', ctrl.recognizeFood);
+router.get('/barcode/:barcode', ctrl.lookupByBarcode);
+
 // Favorites
 router.get('/favorites',            ctrl.getFavorites);
 router.post('/favorites/:foodId',   ctrl.toggleFavorite);

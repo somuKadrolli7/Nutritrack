@@ -9,6 +9,7 @@ const foodSchema = new mongoose.Schema({
     required: true,
   },
   cuisineType: { type: String, default: 'common' }, // 'south_indian', 'north_indian', 'international', etc.
+  barcode:     { type: String, default: '' }, // UPC/EAN barcode
 
   // Per serving values
   servingSize:   { type: Number, default: 100 }, // grams
@@ -39,5 +40,6 @@ const foodSchema = new mongoose.Schema({
 
 foodSchema.index({ name: 'text', nameAlt: 'text', tags: 'text' });
 foodSchema.index({ category: 1 });
+foodSchema.index({ barcode: 1 });
 
 module.exports = mongoose.model('Food', foodSchema);

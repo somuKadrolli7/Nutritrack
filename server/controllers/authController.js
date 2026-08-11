@@ -14,12 +14,22 @@ const setTokens = (user) => ({
 /* ─── POST /api/auth/register ───────────────────────────── */
 exports.register = async (req, res) => {
   try {
-    const { name, email, password, age, weight, height, gender } = req.body;
+    const { name, email, password, age, weight, height, gender, goal, activityLevel, dietPreference } = req.body;
     if (!name || !email || !password)
       return res.status(400).json({ error: 'Name, email and password are required.' });
 
     if (await User.findOne({ email }))
       return res.status(409).json({ error: 'Email already in use.' });
+
+    // Map frontend goal to backend enum
+    let backendGoal = 'maintain';
+    if (goal === 'lose_weight') backendGoal = 'lose';
+    else if (goal === 'gain_muscle') backendGoal = 'gain';
+
+    // Map frontend activity level to backend enum
+    let backendActivity = 'sedentary';
+    if (activityLevel === 'very_active') backendActivity = 'veryActive';
+    else if (['sedentary', 'light', 'moderate', 'active'].includes(activityLevel)) backendActivity = activityLevel;
 
     const user = await User.create({
       name, email, password,
@@ -27,6 +37,9 @@ exports.register = async (req, res) => {
       weight: weight || undefined,
       height: height || undefined,
       gender: gender || undefined,
+      goal: backendGoal,
+      activityLevel: backendActivity,
+      dietPreference: dietPreference || 'any',
       isVerified: true,
     });
 
@@ -41,7 +54,11 @@ exports.register = async (req, res) => {
     });
   } catch (err) {
     console.error('[register]', err);
-    res.status(500).json({ error: 'Registration failed. Please try again.' });
+    if (err.name === 'ValidationError') {
+      const messages = Object.values(err.errors).map(val => val.message);
+      return res.status(400).json({ error: messages.join(', ') });
+    }
+    res.status(500).json({ error: err.message || 'Registration failed. Please try again.' });
   }
 };
 

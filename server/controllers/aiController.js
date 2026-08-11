@@ -50,7 +50,7 @@ Never diagnose medical conditions — always recommend consulting a doctor for m
 /* ─── POST /api/ai/chat ──────────────────────────────────── */
 exports.chat = async (req, res) => {
   try {
-    const { message, history = [] } = req.body;
+    const { message, history = [], language = 'en' } = req.body;
     if (!message) return res.status(400).json({ error: 'Message is required.' });
 
     const ai = getAI();
@@ -60,8 +60,11 @@ exports.chat = async (req, res) => {
       });
     }
 
+    // Build dynamic system prompt including language instruction
+    const dynamicSystemPrompt = `${SYSTEM_PROMPT}\nPlease respond in the following language: ${language}.`;
+
     const chatHistory = [
-      { role: 'user',  parts: [{ text: SYSTEM_PROMPT }] },
+      { role: 'user',  parts: [{ text: dynamicSystemPrompt }] },
       { role: 'model', parts: [{ text: 'Hello! I am NutriBot. How can I help you today?' }] },
       ...history.slice(-10).map((h) => ({
         role:  h.role === 'user' ? 'user' : 'model',
@@ -108,18 +111,21 @@ exports.mealSuggestions = async (req, res) => {
   const getOfflineResponse = () => {
     const breakfasts = allowedFoods.filter(f => f.mealTypes && f.mealTypes.includes('breakfast'));
     const mains = allowedFoods.filter(f => f.mealTypes && (f.mealTypes.includes('lunch') || f.mealTypes.includes('dinner')));
-    const snacks = allowedFoods.filter(f => f.mealTypes && f.mealTypes.includes('snack'));
+    const snacks = allowedFoods.filter(f => f.category === 'snack' || f.category === 'fruit' || f.category === 'beverage' || (f.mealTypes && f.mealTypes.includes('snack')));
 
     const selectedMeals = [];
     let totalCal = 0, totalProt = 0, totalCarbs = 0, totalFat = 0;
 
-    const pickMeal = (list, slotLabel) => {
-      if (list.length === 0) return null;
-      const f = list[Math.floor(Math.random() * list.length)];
-      const targetCalories = slotLabel === 'Snack' ? calorieTarget * 0.15 : (calorieTarget / mealsPerDay);
-      let servings = Number((targetCalories / f.calories).toFixed(1));
+    const drinks = allowedFoods.filter(f => f.category === 'beverage');
+    const sideSalads = allowedFoods.filter(f => f.category === 'vegetable' || f.category === 'dairy' || (f.tags && f.tags.includes('high-fiber')));
+
+    const pickItem = (poolList, slotLabel, targetCals) => {
+      const pool = (poolList && poolList.length > 0) ? poolList : allowedFoods;
+      if (pool.length === 0) return null;
+      const f = pool[Math.floor(Math.random() * pool.length)];
+      let servings = Number((targetCals / f.calories).toFixed(1));
       if (servings < 0.5) servings = 0.5;
-      if (servings > 3.0) servings = 2.0;
+      if (servings > 2.5) servings = 1.5;
 
       const mealCalories = Math.round(f.calories * servings);
       const mealProtein = Number((f.protein * servings).toFixed(1));
@@ -145,18 +151,23 @@ exports.mealSuggestions = async (req, res) => {
       };
     };
 
-    if (mealsPerDay === 2) {
-      const m1 = pickMeal(breakfasts.length > 0 ? breakfasts : mains, 'Meal 1 (Morning)');
-      if (m1) selectedMeals.push(m1);
-      const m2 = pickMeal(mains, 'Meal 2 (Evening)');
-      if (m2) selectedMeals.push(m2);
+    const addSectionItems = (slotLabel, mainPool, sidePool, calsTarget) => {
+      const mainItem = pickItem(mainPool, slotLabel, calsTarget * 0.70);
+      if (mainItem) selectedMeals.push(mainItem);
+      const sideItem = pickItem(sidePool, slotLabel, calsTarget * 0.30);
+      if (sideItem && sideItem.food !== mainItem?.food) selectedMeals.push(sideItem);
+    };
+
+    if (mealsPerDay === 3) {
+      addSectionItems('Breakfast', breakfasts, drinks.length > 0 ? drinks : breakfasts, calorieTarget * 0.28);
+      addSectionItems('Lunch', mains, sideSalads.length > 0 ? sideSalads : mains, calorieTarget * 0.42);
+      addSectionItems('Dinner', mains, sideSalads.length > 0 ? sideSalads : mains, calorieTarget * 0.30);
     } else {
-      const m1 = pickMeal(breakfasts.length > 0 ? breakfasts : mains, 'Breakfast');
-      if (m1) selectedMeals.push(m1);
-      const m2 = pickMeal(mains, 'Lunch');
-      if (m2) selectedMeals.push(m2);
-      const m3 = pickMeal(mains, 'Dinner');
-      if (m3) selectedMeals.push(m3);
+      // 4 Meals (Default): Breakfast, Lunch, Evening Snack, Dinner
+      addSectionItems('Breakfast', breakfasts, drinks.length > 0 ? drinks : breakfasts, calorieTarget * 0.25);
+      addSectionItems('Lunch', mains, sideSalads.length > 0 ? sideSalads : mains, calorieTarget * 0.35);
+      addSectionItems('Evening Snack', snacks, drinks.length > 0 ? drinks : snacks, calorieTarget * 0.15);
+      addSectionItems('Dinner', mains, sideSalads.length > 0 ? sideSalads : mains, calorieTarget * 0.25);
     }
 
     const groceryList = smartFeatures?.groceryList ? selectedMeals.map(m => `${m.servings}x serving of ${m.food}`) : [];
@@ -191,18 +202,28 @@ exports.mealSuggestions = async (req, res) => {
 
   try {
     const body = req.body || {};
+    const region = body.region || 'south_india';
     cuisine = body.cuisine || 'south_indian';
-    mealsPerDay = body.mealsPerDay || 3;
+    mealsPerDay = body.mealsPerDay || 4;
     allergies = body.allergies || [];
     const customAllergy = body.customAllergy || '';
     smartFeatures = body.smartFeatures || {};
     const targets = body.targets || {};
+    const dietaryPreference = (body.dietaryPreference || 'Vegetarian').toLowerCase();
 
     calorieTarget = Number(targets.calories) || 2000;
     proteinTarget = Number(targets.protein) || 140;
     carbsTarget = Number(targets.carbs) || 230;
     fatTarget = Number(targets.fat) || 58;
     waterTarget = targets.water || '3-4 Liters';
+
+    const regionLabels = {
+      south_india: 'South India (Karnataka, Tamil Nadu, Kerala, Andhra)',
+      north_india: 'North India (Punjab, Delhi, UP, Rajasthan, Kashmir)',
+      west_india: 'West India (Maharashtra, Gujarat)',
+      east_india: 'East & North-East India (Bengal, Odisha, Assam)',
+      international: 'Global / International (US, Europe, Australia)'
+    };
 
     // 1. Fetch verified foods from database
     const allVerifiedFoods = await Food.find({ isVerified: true });
@@ -213,7 +234,13 @@ exports.mealSuggestions = async (req, res) => {
       activeExclusions.push(customAllergy.trim().toLowerCase());
     }
 
-    // 3. Filter foods strictly
+    if (dietaryPreference === 'vegetarian') {
+      activeExclusions.push('meat', 'chicken', 'fish', 'beef', 'pork', 'mutton', 'seafood', 'prawn', 'egg', 'lamb');
+    } else if (dietaryPreference === 'vegan') {
+      activeExclusions.push('meat', 'chicken', 'fish', 'beef', 'pork', 'mutton', 'seafood', 'prawn', 'egg', 'lamb', 'dairy', 'milk', 'cheese', 'ghee', 'butter', 'paneer', 'curd', 'yogurt', 'whey');
+    }
+
+    // 3. Filter foods strictly based on Region & Allergies
     allowedFoods = allVerifiedFoods.filter(food => {
       const foodName = food.name.toLowerCase();
       const foodCategory = food.category.toLowerCase();
@@ -221,27 +248,30 @@ exports.mealSuggestions = async (req, res) => {
       const foodCuisine = (food.cuisineType || '').toLowerCase();
       const foodDesc = `${foodName} ${foodCategory} ${foodTags.join(' ')} ${foodCuisine}`;
 
-      // Cuisine Preferences
-      if (cuisine === 'south_indian') {
-        // If South Indian is selected, strictly exclude North Indian items
-        if (foodCuisine === 'north_indian' || foodCategory === 'north_indian') {
+      // Region & Location Filtering
+      if (region === 'south_india') {
+        const allowedSouthTypes = ['south_indian', 'karnataka', 'kerala', 'andhra', 'common', 'indian_common'];
+        if (!allowedSouthTypes.includes(foodCuisine) && foodCategory !== 'fruit' && foodCategory !== 'vegetable' && foodCategory !== 'dairy' && foodCategory !== 'beverage' && foodCategory !== 'protein' && foodCategory !== 'gym') {
           return false;
         }
-      } else if (cuisine === 'north_indian') {
-        // If North Indian is selected, strictly exclude South Indian items
-        if (foodCuisine === 'south_indian' || foodCategory === 'south_indian') {
+      } else if (region === 'north_india') {
+        const allowedNorthTypes = ['north_indian', 'punjabi', 'kashmiri', 'rajasthani', 'common', 'indian_common'];
+        if (!allowedNorthTypes.includes(foodCuisine) && foodCategory !== 'fruit' && foodCategory !== 'vegetable' && foodCategory !== 'dairy' && foodCategory !== 'beverage' && foodCategory !== 'protein' && foodCategory !== 'gym') {
           return false;
         }
-      } else if (cuisine === 'continental') {
-        // If Continental is selected, strictly exclude traditional Indian items (e.g. South/North Indian specialties)
-        const traditionalIndianTerms = [
-          'dosa', 'idli', 'sambar', 'pongal', 'uttapam', 'curd rice', 'rasam', 'upma',
-          'roti', 'chapati', 'naan', 'paratha', 'paneer butter masala', 'dal makhani',
-          'rajma', 'chole bhature', 'biryani', 'samosa', 'poha'
-        ];
-        if (traditionalIndianTerms.some(term => foodName.includes(term)) || 
-            foodCuisine === 'south_indian' || foodCuisine === 'north_indian' ||
-            foodCategory === 'south_indian' || foodCategory === 'north_indian') {
+      } else if (region === 'west_india') {
+        const allowedWestTypes = ['maharashtrian', 'gujarati', 'indian_common', 'common'];
+        if (!allowedWestTypes.includes(foodCuisine) && foodCategory !== 'fruit' && foodCategory !== 'vegetable' && foodCategory !== 'dairy' && foodCategory !== 'beverage' && foodCategory !== 'protein' && foodCategory !== 'gym') {
+          return false;
+        }
+      } else if (region === 'east_india') {
+        const allowedEastTypes = ['bengali', 'odia', 'north_east', 'indian_common', 'common'];
+        if (!allowedEastTypes.includes(foodCuisine) && foodCategory !== 'fruit' && foodCategory !== 'vegetable' && foodCategory !== 'dairy' && foodCategory !== 'beverage' && foodCategory !== 'protein' && foodCategory !== 'gym') {
+          return false;
+        }
+      } else if (region === 'international') {
+        const allowedIntTypes = ['international', 'gym', 'common'];
+        if (!allowedIntTypes.includes(foodCuisine) && foodCategory !== 'fruit' && foodCategory !== 'vegetable' && foodCategory !== 'dairy' && foodCategory !== 'beverage' && foodCategory !== 'protein' && foodCategory !== 'gym') {
           return false;
         }
       }
@@ -249,77 +279,68 @@ exports.mealSuggestions = async (req, res) => {
       // Allergen Exclusions
       for (const exclusion of activeExclusions) {
         if (exclusion === 'nuts') {
-          // Exclude almond, peanut, nut, badam, moongfali
           const nutTerms = ['nut', 'almond', 'peanut', 'cashew', 'badam', 'moongfali'];
-          if (nutTerms.some(term => foodDesc.includes(term))) {
-            return false;
-          }
+          if (nutTerms.some(term => foodDesc.includes(term))) return false;
         } else if (exclusion === 'dairy') {
-          // Exclude curd, yogurt, milk, ghee, paneer, butter, cheese, cream, dahi, dudh
           const dairyTerms = ['milk', 'curd', 'yogurt', 'ghee', 'paneer', 'butter', 'cheese', 'cream', 'dahi', 'dudh', 'dairy'];
-          if (dairyTerms.some(term => foodDesc.includes(term))) {
-            return false;
-          }
+          if (dairyTerms.some(term => foodDesc.includes(term))) return false;
         } else if (exclusion === 'gluten') {
-          // Exclude wheat items: roti, naan, bhature, paratha, chapati, oats, grain, semolina (upma), wheat
           const glutenTerms = ['roti', 'naan', 'bhature', 'paratha', 'chapati', 'wheat', 'samosa', 'upma'];
-          if (glutenTerms.some(term => foodDesc.includes(term))) {
-            return false;
-          }
+          if (glutenTerms.some(term => foodDesc.includes(term))) return false;
         } else if (exclusion.length > 0) {
-          // Custom exclusion word check
-          if (foodDesc.includes(exclusion)) {
-            return false;
-          }
+          if (foodDesc.includes(exclusion)) return false;
         }
       }
       return true;
     });
 
-    // If for some reason we filtered out EVERYTHING (safety fallback), restore a basic safe set
+    // Fallback if filter is too restrictive
     if (allowedFoods.length === 0) {
-      allowedFoods = allVerifiedFoods.filter(f => f.category === 'fruit' || f.category === 'vegetable');
+      allowedFoods = allVerifiedFoods.filter(f => f.category === 'fruit' || f.category === 'vegetable' || f.category === 'dairy');
     }
 
     const ai = getAI();
 
     if (!ai) {
-      console.log('[AI Suggestions] No Gemini API key. Returning high-fidelity offline seeded response.');
-      return res.json(getOfflineResponse());
+      console.log('[AI Suggestions] No Gemini API key. Returning high-fidelity location-based response.');
+      const plan = getOfflineResponse();
+      plan.regionLabel = regionLabels[region] || 'South India';
+      return res.json(plan);
     }
 
-    // 4. Format allowed verified foods list for prompt insertion
+    // Format allowed verified foods list for prompt insertion
     const allowedListString = allowedFoods.map(f => 
       `- ${f.name} (emoji: "${f.emoji}"): category="${f.category}", calories=${f.calories} kcal, protein=${f.protein}g, carbs=${f.carbs}g, fat=${f.fat}g, fiber=${f.fiber}g per serving (${f.servingLabel})`
     ).join('\n');
 
-    // 5. Structure strict, bulletproof prompt
-    const prompt = `You are the NutriTrack AI Advanced Nutrition Engine.
-Create a highly professional and tailored meal plan for a user with the following targets:
+    const prompt = `You are the NutriTrack AI Advanced Location-Based Nutrition Engine.
+Create a highly realistic and tailored diet plan for a user located in:
+- Region & Location: ${regionLabels[region] || region}
+- Dietary Preference: ${dietaryPreference}
 - Calorie Target: ${calorieTarget} kcal
 - Protein Target: ${proteinTarget} g
 - Carb Target: ${carbsTarget} g
 - Fat Target: ${fatTarget} g
-- Cuisine Preference: ${cuisine} (South Indian / North Indian / Continental)
 - Meals Per Day: ${mealsPerDay} meals
 
-🚨 CRITICAL SAFETY RULES:
-1. STRICT DATABASE LIMIT: You MUST select foods ONLY from the "VERIFIED FOOD LIST" below. Do NOT hallucinate, invent, or suggest any food, ingredient, or recipe that is not explicitly in this list. Every meal's "food" field must exactly match one of the food names from this list.
-2. NO INGREDIENTS OR HALLUCINATED SIDES: If a dish like "Idli" is selected, the food field is "Idli". Do not add external toppings or ingredients not in the list.
-3. SERVING CALCULATIONS: Adjust the "servings" field (e.g. 1, 1.5, 0.8, 2) to scale the calories and macros of the meal to meet the user's daily goals as closely as possible.
-4. MEALS PER DAY COUNT: You must generate exactly ${mealsPerDay} meals.
-
-SMART FEATURES (Only include these sections in response if requested):
-- Grocery List ("groceryList" array in JSON): ${smartFeatures.groceryList ? 'Include exact ingredients and quantities needed' : 'Exclude (return empty array)'}
-- Weekly Rotation ("weeklyRotation" array in JSON): ${smartFeatures.weeklyRotation ? 'Provide rotation ideas for alternate days' : 'Exclude (return empty array)'}
-- AI Health Tips: ${smartFeatures.aiHealthTips ? 'YES' : 'NO'}
-- Hydration Reminder: ${smartFeatures.hydrationReminder ? 'YES' : 'NO'}
+🚨 CRITICAL LOCATION & REALISTIC MEAL RULES:
+1. LOCATION MATCHING: Select foods natively available and widely sourced in ${regionLabels[region] || region}.
+2. MEAL SLOTS REQUIREMENT:
+   - If ${mealsPerDay} is 4: Generate 4 meals in order: ["Breakfast", "Lunch", "Evening Snack", "Dinner"].
+   - If ${mealsPerDay} is 3: Generate 3 meals in order: ["Breakfast", "Lunch", "Dinner"].
+3. STRICT DATABASE LIMIT: You MUST select foods ONLY from the "VERIFIED FOOD LIST" below. Do NOT hallucinate food names not in this list.
+4. MEAL CATEGORY APPROPRIATENESS:
+   - "Breakfast" MUST select a breakfast food available in ${regionLabels[region] || region}.
+   - "Lunch" MUST select a main course dish available in ${regionLabels[region] || region}.
+   - "Evening Snack" MUST select a light snack/beverage.
+   - "Dinner" MUST select a balanced dinner meal.
 
 VERIFIED FOOD LIST:
 ${allowedListString}
 
-Return ONLY a valid JSON object matching this exact structure:
+Return ONLY a valid JSON object matching this structure (do NOT use markdown tags):
 {
+  "regionLabel": "${regionLabels[region] || region}",
   "meals": [
     {
       "meal": "Breakfast",
@@ -342,26 +363,24 @@ Return ONLY a valid JSON object matching this exact structure:
     "carbs": 230,
     "fat": 58
   }
-}
-
-Do NOT output any markdown tags like \`\`\`json. Return pure raw JSON string only.`;
+}`;
 
     const result = await generateContentWithFallback(prompt);
     let text = result.response.text().trim();
-    // Clean up markdown block wraps if model adds them
     text = text.replace(/^```json/i, '').replace(/```$/i, '').trim();
 
     const plan = JSON.parse(text);
+    plan.regionLabel = regionLabels[region] || 'South India';
     res.json(plan);
   } catch (err) {
     console.error('[AI mealSuggestions error]', err);
-    // In case of JSON parse error or Gemini failure, serve high-fidelity offline fallback
     try {
-      console.log('[AI Suggestions Fallback] Triggering offline response due to error.');
+      console.log('[AI Suggestions Fallback] Triggering location-based offline response due to error.');
       const offlinePlan = getOfflineResponse();
+      offlinePlan.regionLabel = 'South India (Local Dataset)';
       res.json(offlinePlan);
-    } catch (fallbackErr) {
-      res.status(500).json({ error: 'Could not generate meal plan suggestions.' });
+    } catch (innerErr) {
+      res.status(500).json({ error: 'Could not generate meal suggestions.' });
     }
   }
 };
@@ -369,7 +388,7 @@ Do NOT output any markdown tags like \`\`\`json. Return pure raw JSON string onl
 /* ─── POST /api/ai/workout-suggestions ──────────────────── */
 exports.workoutSuggestions = async (req, res) => {
   try {
-    const { goal = 'general', fitnessLevel = 'beginner', availableTime = 30 } = req.body;
+    const { goal = 'general', fitnessLevel = 'beginner', availableTime = 30, language = 'en' } = req.body;
     const ai = getAI();
 
     if (!ai) {
@@ -383,7 +402,7 @@ exports.workoutSuggestions = async (req, res) => {
       });
     }
 
-    const prompt = `${availableTime}min workout for goal=${goal}, level=${fitnessLevel}. JSON only: {"exercises":[{"name":"...","duration":10,"sets":null,"reps":null,"caloriesBurned":50,"category":"cardio"}],"totalCalories":200,"tips":["tip"]}`;
+    const prompt = `${availableTime}min workout for goal=${goal}, level=${fitnessLevel}. Respond in ${language}. JSON only: {"exercises":[{"name":"...","duration":10,"sets":null,"reps":null,"caloriesBurned":50,"category":"cardio"}],"totalCalories":200,"tips":["tip"]}`;
     const result = await generateContentWithFallback(prompt);
     let text = result.response.text().trim().replace(/```json?\n?/g, '').replace(/```/g, '');
     res.json(JSON.parse(text));
@@ -397,6 +416,7 @@ exports.mealPlan = async (req, res) => {
   try {
     const ai = getAI();
     const user = req.user;
+    const language = req.query.language || 'en';
     
     // Default calorie goal fallback
     let calorieTarget = 2000;
@@ -423,7 +443,8 @@ exports.mealPlan = async (req, res) => {
 - Weight: ${user.weight || 'unknown'} kg
 - Height: ${user.height || 'unknown'} cm
 
-Please format the response nicely with sections for Breakfast, Lunch, Dinner, and Snacks. Include calorie/macro estimates for each meal.`;
+Please format the response nicely with sections for Breakfast, Lunch, Dinner, and Snacks. Include calorie/macro estimates for each meal.
+Please respond in ${language}.`;
     
     const result = await generateContentWithFallback(prompt);
     res.json({ plan: result.response.text() });
@@ -433,11 +454,57 @@ Please format the response nicely with sections for Breakfast, Lunch, Dinner, an
   }
 };
 
+/* ─── GET /api/ai/local-diet-plan ─────────────────────────── */
+exports.localDietPlan = async (req, res) => {
+  try {
+    const ai = getAI();
+    const user = req.user;
+    const language = req.query.language || 'en';
+    const location = req.query.location || 'your local region';
+    
+    // Default calorie goal fallback
+    let calorieTarget = 2000;
+    if (user.weight && user.height && user.age) {
+      const bmr = user.gender === 'male'
+        ? 88.36 + 13.4 * user.weight + 4.8 * user.height - 5.7 * user.age
+        : 447.6  + 9.2  * user.weight + 3.1 * user.height - 4.3 * user.age;
+      
+      const activityFactors = { sedentary: 1.2, light: 1.375, moderate: 1.55, active: 1.725, veryActive: 1.9 };
+      const tdee = Math.round(bmr * (activityFactors[user.activityLevel] || 1.2));
+      
+      calorieTarget = user.goal === 'lose' ? tdee - 300 : user.goal === 'gain' ? tdee + 300 : tdee;
+    }
+
+    if (!ai) {
+      return res.json({
+        plan: `🤖 Google Gemini is offline (API key missing). Here is a personalized recommendation for ${location}:\n\n**Calorie Target**: ${calorieTarget} kcal\n**Goal**: ${user.goal || 'maintain'}\n\nTip: Since AI is offline, I can't generate a local diet plan right now. Try focusing on local, whole foods!`,
+      });
+    }
+
+    const prompt = `Create a highly professional, beautifully formatted, personalized daily meal plan for a user with the following profile:
+- Calorie Target: ${calorieTarget} kcal
+- Goal: ${user.goal || 'maintain'}
+- Location: ${location}
+
+CRITICAL: You MUST use traditional local cuisine, easily available local ingredients, and regional dishes from the specified location (${location}). Do not suggest generic western diets if they are not from a western country. 
+
+Format the response nicely with sections for Breakfast, Lunch, Dinner, and Snacks. Include calorie/macro estimates for each meal.
+Respond in ${language}.`;
+    
+    const result = await generateContentWithFallback(prompt);
+    res.json({ plan: result.response.text() });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Could not generate local diet plan.' });
+  }
+};
+
 /* ─── GET /api/ai/workout-plan ────────────────────────────── */
 exports.workoutPlan = async (req, res) => {
   try {
     const ai = getAI();
     const user = req.user;
+    const language = req.query.language || 'en';
 
     if (!ai) {
       return res.json({
@@ -449,7 +516,8 @@ exports.workoutPlan = async (req, res) => {
 - Goal: ${user.goal || 'general fitness'}
 - Activity Level: ${user.activityLevel || 'sedentary'}
 
-Include a structured routine with a warm-up, main exercises (sets/reps/duration), and a cool-down. Make it clean, motivational, and easy to read.`;
+Include a structured routine with a warm-up, main exercises (sets/reps/duration), and a cool-down. Make it clean, motivational, and easy to read.
+Please respond in ${language}.`;
     
     const result = await generateContentWithFallback(prompt);
     res.json({ plan: result.response.text() });

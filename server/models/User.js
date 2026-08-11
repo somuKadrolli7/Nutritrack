@@ -24,6 +24,11 @@ const userSchema = new mongoose.Schema(
     gender: { type: String, enum: ['male', 'female', 'other'] },
 
     // App settings
+    dietPreference: {
+      type: String,
+      enum: ['vegetarian', 'non-vegetarian', 'any'],
+      default: 'any',
+    },
     activityLevel: {
       type: String,
       enum: ['sedentary', 'light', 'moderate', 'active', 'veryActive'],

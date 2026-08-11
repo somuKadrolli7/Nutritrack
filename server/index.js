@@ -6,6 +6,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
+const multer = require('multer');
 require('dotenv').config();
 
 // Seed utilities
@@ -22,22 +23,24 @@ const userRoutes     = require('./routes/user');
 
 const app    = express();
 const server = http.createServer(app);
+const allowedOrigins = [process.env.CLIENT_URL, 'http://localhost:3000', 'http://localhost:3002'].filter(Boolean);
+
+const corsOptions = {
+  origin: allowedOrigins,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+  credentials: true,
+};
+
 const io     = new Server(server, {
-  cors: {
-    origin: process.env.CLIENT_URL || 'http://localhost:3000',
-    methods: ['GET', 'POST'],
-    credentials: true,
-  },
+  cors: corsOptions,
 });
 
 /* ─── Middleware ─────────────────────────────────────────── */
 app.use(helmet());
-app.use(cors({
-  origin: process.env.CLIENT_URL || 'http://localhost:3000',
-  credentials: true,
-}));
+app.use(cors(corsOptions));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
+app.use(multer({ storage: multer.memoryStorage() }).single('image'));
 if (process.env.NODE_ENV === 'development') app.use(morgan('dev'));
 
 // Global rate limiter

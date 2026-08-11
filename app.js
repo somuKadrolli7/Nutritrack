@@ -2,8 +2,8 @@
 const root = document.getElementById('root');
 
 /* ---------- Utilities ---------- */
-const uid = () => Math.random().toString(36).slice(2,9);
-const save = (k,v) => localStorage.setItem(k, JSON.stringify(v));
+const uid = () => Math.random().toString(36).slice(2, 9);
+const save = (k, v) => localStorage.setItem(k, JSON.stringify(v));
 const load = k => JSON.parse(localStorage.getItem(k) || 'null');
 
 /* ---------- Data stores (sample) ---------- */
@@ -22,39 +22,39 @@ const FOOD_DB = [
 
 // Exercises sample
 const EXERCISES = [
-  { id: uid(), name: 'Brisk Walking', calories_per_30min: 150, desc: 'Good for beginners — low impact.' , img: 'https://images.unsplash.com/photo-1554288249-ef5b40d5f2a3?auto=format&fit=crop&w=800&q=60' },
-  { id: uid(), name: 'Jogging', calories_per_30min: 250, desc: 'Moderate intensity cardio.' , img: 'https://images.unsplash.com/photo-1483729558449-99ef09a8c325?auto=format&fit=crop&w=800&q=60'},
-  { id: uid(), name: 'Push-ups', calories_per_15min: 100, desc: 'Bodyweight strength for chest and triceps.' , img: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?auto=format&fit=crop&w=800&q=60' }
+  { id: uid(), name: 'Brisk Walking', calories_per_30min: 150, desc: 'Good for beginners — low impact.', img: 'https://images.unsplash.com/photo-1554288249-ef5b40d5f2a3?auto=format&fit=crop&w=800&q=60' },
+  { id: uid(), name: 'Jogging', calories_per_30min: 250, desc: 'Moderate intensity cardio.', img: 'https://images.unsplash.com/photo-1483729558449-99ef09a8c325?auto=format&fit=crop&w=800&q=60' },
+  { id: uid(), name: 'Push-ups', calories_per_15min: 100, desc: 'Bodyweight strength for chest and triceps.', img: 'https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?auto=format&fit=crop&w=800&q=60' }
 ];
 
 /* ---------- Health math ---------- */
-function calcBMI(weightKg, heightCm){
-  if(!weightKg || !heightCm) return null;
-  return +(weightKg / ((heightCm/100)**2)).toFixed(1);
+function calcBMI(weightKg, heightCm) {
+  if (!weightKg || !heightCm) return null;
+  return +(weightKg / ((heightCm / 100) ** 2)).toFixed(1);
 }
-function bmiCategory(bmi){
-  if(bmi === null) return {cat:'-', color:'#6b7280'};
-  if(bmi < 18.5) return {cat:'Underweight', color:'#fb923c'};
-  if(bmi < 25) return {cat:'Normal', color:'#16a34a'};
-  if(bmi < 30) return {cat:'Overweight', color:'#f59e0b'};
-  return {cat:'Obese', color:'#ef4444'};
+function bmiCategory(bmi) {
+  if (bmi === null) return { cat: '-', color: '#6b7280' };
+  if (bmi < 18.5) return { cat: 'Underweight', color: '#fb923c' };
+  if (bmi < 25) return { cat: 'Normal', color: '#16a34a' };
+  if (bmi < 30) return { cat: 'Overweight', color: '#f59e0b' };
+  return { cat: 'Obese', color: '#ef4444' };
 }
-function calcBMR(weight, height, age, gender){
-  if(gender === 'male'){
+function calcBMR(weight, height, age, gender) {
+  if (gender === 'male') {
     return 88.36 + (13.4 * weight) + (4.8 * height) - (5.7 * age);
   } else {
     return 447.6 + (9.2 * weight) + (3.1 * height) - (4.3 * age);
   }
 }
-function calcTDEE(bmr, activityFactor=1.2){ return bmr * activityFactor; }
+function calcTDEE(bmr, activityFactor = 1.2) { return bmr * activityFactor; }
 
 /* ---------- Render helpers ---------- */
-function mount(html){
+function mount(html) {
   root.innerHTML = `<div class="app fade">${html}</div>`;
 }
 
 
-function navBar(){
+function navBar() {
   return `
     <div class="nav">
       <div class="brand">NutriTrack</div>
@@ -73,7 +73,7 @@ function navBar(){
 }
 
 /* ---------- Auth Screens ---------- */
-function renderAuth(login = true){
+function renderAuth(login = true) {
   const leftBg = login
     ? "https://images.unsplash.com/photo-1554299045-1e8149f0e6d6?auto=format&fit=crop&w=1600&q=60"
     : "https://images.unsplash.com/photo-1508609349937-5ec4ae374ebf?auto=format&fit=crop&w=1600&q=60";
@@ -120,13 +120,13 @@ function renderAuth(login = true){
     </div>
   `);
 
-  if(login){
-    document.getElementById('frmLogin').addEventListener('submit', e=>{
+  if (login) {
+    document.getElementById('frmLogin').addEventListener('submit', e => {
       e.preventDefault();
       const email = document.getElementById('liEmail').value.trim().toLowerCase();
       const pass = document.getElementById('liPass').value;
       const u = users.find(x => x.email === email && x.password === pass);
-      if(u){
+      if (u) {
         currentUserId = u.id;
         save('nt_current', currentUserId);
         renderDashboard();
@@ -134,9 +134,9 @@ function renderAuth(login = true){
         alert('Invalid credentials. Try test user: test@demo / test123');
       }
     });
-    if(document.getElementById('toRegister')) document.getElementById('toRegister').addEventListener('click', e=>{e.preventDefault(); renderAuth(false)});
+    if (document.getElementById('toRegister')) document.getElementById('toRegister').addEventListener('click', e => { e.preventDefault(); renderAuth(false) });
   } else {
-    document.getElementById('frmReg').addEventListener('submit', e=>{
+    document.getElementById('frmReg').addEventListener('submit', e => {
       e.preventDefault();
       const newU = {
         id: uid(),
@@ -150,19 +150,19 @@ function renderAuth(login = true){
         activity: 1.2,
         goal: 'maintenance'
       };
-      if(users.some(x => x.email === newU.email)){ alert('Email already used'); return; }
+      if (users.some(x => x.email === newU.email)) { alert('Email already used'); return; }
       users.push(newU); save('nt_users', users);
       alert('Registered — now login');
       renderAuth(true);
     });
-    if(document.getElementById('toLogin')) document.getElementById('toLogin').addEventListener('click', e=>{e.preventDefault(); renderAuth(true)});
+    if (document.getElementById('toLogin')) document.getElementById('toLogin').addEventListener('click', e => { e.preventDefault(); renderAuth(true) });
   }
 }
 
 /* ---------- Dashboard ---------- */
-function renderDashboard(){
-  const user = users.find(u=>u.id === currentUserId);
-  if(!user){ renderAuth(true); return; }
+function renderDashboard() {
+  const user = users.find(u => u.id === currentUserId);
+  if (!user) { renderAuth(true); return; }
 
   // health calculations
   const bmi = calcBMI(user.weight, user.height);
@@ -241,49 +241,49 @@ function renderDashboard(){
   // chart (dummy progress)
   const ctx = document.getElementById('chartWeek').getContext('2d');
   new Chart(ctx, {
-    type:'line',
-    data:{
-      labels: ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],
-      datasets:[{
-        label:'Calories Consumed',
-        data: [recCalories-200, recCalories-50, recCalories+100, recCalories-300, recCalories, recCalories+50, recCalories-150],
-        fill:false,
-        tension:0.3,
+    type: 'line',
+    data: {
+      labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+      datasets: [{
+        label: 'Calories Consumed',
+        data: [recCalories - 200, recCalories - 50, recCalories + 100, recCalories - 300, recCalories, recCalories + 50, recCalories - 150],
+        fill: false,
+        tension: 0.3,
       }]
     },
-    options:{plugins:{legend:{display:false}}}
+    options: { plugins: { legend: { display: false } } }
   });
 
   // handlers
-  document.getElementById('menu-diet').onclick = ()=> renderDietGenerator(user);
-  document.getElementById('menu-food').onclick = ()=> renderFoodDB();
-  document.getElementById('menu-ex').onclick = ()=> renderExercises();
-  document.getElementById('menu-health').onclick = ()=> renderHealthInfo();
-  document.getElementById('menu-profile').onclick = ()=> renderProfile(user);
+  document.getElementById('menu-diet').onclick = () => renderDietGenerator(user);
+  document.getElementById('menu-food').onclick = () => renderFoodDB();
+  document.getElementById('menu-ex').onclick = () => renderExercises();
+  document.getElementById('menu-health').onclick = () => renderHealthInfo();
+  document.getElementById('menu-profile').onclick = () => renderProfile(user);
 
-  document.getElementById('btn-generate').onclick = ()=> renderDietGenerator(user);
-  document.getElementById('btn-view-food').onclick = ()=> renderFoodDB();
-  document.getElementById('btn-ex').onclick = ()=> renderExercises();
+  document.getElementById('btn-generate').onclick = () => renderDietGenerator(user);
+  document.getElementById('btn-view-food').onclick = () => renderFoodDB();
+  document.getElementById('btn-ex').onclick = () => renderExercises();
 
   // top nav handlers
   document.getElementById('nav-dashboard').onclick = renderDashboard;
   document.getElementById('nav-food').onclick = renderFoodDB;
   document.getElementById('nav-ex').onclick = renderExercises;
   document.getElementById('nav-health').onclick = renderHealthInfo;
-  document.getElementById('nav-profile').onclick = ()=> renderProfile(user);
-  document.getElementById('nav-logout').onclick = ()=>{
+  document.getElementById('nav-profile').onclick = () => renderProfile(user);
+  document.getElementById('nav-logout').onclick = () => {
     currentUserId = null; save('nt_current', null); renderAuth(true);
   };
 }
 
 /* ---------- Diet Plan Generator ---------- */
-function renderDietGenerator(user){
+function renderDietGenerator(user) {
   const panel = document.getElementById('panel-area');
-  if(!panel) return;
+  if (!panel) return;
   // simple calorie split & sample meals
   const bmr = calcBMR(user.weight, user.height, user.age, user.gender);
   const tdee = Math.round(calcTDEE(bmr, user.activity || 1.2));
-  const target = user.goal === 'lose' ? tdee-300 : user.goal === 'gain' ? tdee+300 : tdee;
+  const target = user.goal === 'lose' ? tdee - 300 : user.goal === 'gain' ? tdee + 300 : tdee;
 
   panel.innerHTML = `
     <div class="card">
@@ -303,7 +303,7 @@ function renderDietGenerator(user){
     </div>
   `;
 
-  document.getElementById('generateNow').onclick = ()=>{
+  document.getElementById('generateNow').onclick = () => {
     const disease = document.getElementById('disease').value;
     const plan = buildSimplePlan(target, disease);
     const el = document.getElementById('dietResult');
@@ -316,9 +316,9 @@ function renderDietGenerator(user){
       <div><b>Dinner</b>: ${plan.dinner} (${plan.cals.dinner} kcal)</div>
     `;
     // attach download content
-    document.getElementById('downloadPlan').onclick = ()=>{
+    document.getElementById('downloadPlan').onclick = () => {
       const txt = `NutriTrack - Daily plan\nTarget: ${target} kcal\n\nBreakfast: ${plan.breakfast} - ${plan.cals.breakfast} kcal\nSnack: ${plan.snack} - ${plan.cals.snack} kcal\nLunch: ${plan.lunch} - ${plan.cals.lunch} kcal\nSnack2: ${plan.snack2} - ${plan.cals.snack2} kcal\nDinner: ${plan.dinner} - ${plan.cals.dinner} kcal\n\n(Generated by NutriTrack)`;
-      const blob = new Blob([txt], {type:'text/plain'});
+      const blob = new Blob([txt], { type: 'text/plain' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a'); a.href = url; a.download = 'nutritrack_daily_plan.txt'; a.click();
       URL.revokeObjectURL(url);
@@ -327,7 +327,7 @@ function renderDietGenerator(user){
 }
 
 // buildSimplePlan: splits calories to meals; applies simple disease rules
-function buildSimplePlan(targetCals, disease){
+function buildSimplePlan(targetCals, disease) {
   // distribution: 25% breakfast, 10% snack, 30% lunch, 10% snack2, 25% dinner
   const b = Math.round(targetCals * 0.25);
   const s = Math.round(targetCals * 0.10);
@@ -343,19 +343,19 @@ function buildSimplePlan(targetCals, disease){
   let dinner = 'Baked fish, quinoa, steamed greens';
 
   // disease-based adjustments (very simplified)
-  if(disease === 'diabetes'){
+  if (disease === 'diabetes') {
     breakfast = 'Oats (no sugar), boiled egg';
     snack = 'Apple slices (small)';
     lunch = 'Grilled chicken, salad, legumes';
     snack2 = 'Cucumber slices';
     dinner = 'Steamed fish and veggies (low-carb)';
-  } else if(disease === 'hypertension'){
+  } else if (disease === 'hypertension') {
     breakfast = 'Oatmeal, low-sodium nuts';
     snack = 'Banana';
     lunch = 'Grilled fish, brown rice, leafy greens (low-salt)';
     snack2 = 'Unsalted almonds';
     dinner = 'Vegetable soup, whole grain bread (low-sodium)';
-  } else if(disease === 'heart'){
+  } else if (disease === 'heart') {
     breakfast = 'Oats, berries, flaxseed';
     snack = 'Orange (small)';
     lunch = 'Salmon salad, quinoa';
@@ -365,12 +365,12 @@ function buildSimplePlan(targetCals, disease){
 
   return {
     breakfast, snack, lunch, snack2, dinner,
-    cals: { breakfast:b, snack:s, lunch:l, snack2:s2, dinner:d }
+    cals: { breakfast: b, snack: s, lunch: l, snack2: s2, dinner: d }
   };
 }
 
 /* ---------- Food DB ---------- */
-function renderFoodDB(){
+function renderFoodDB() {
   const html = `
     ${navBar()}
     <div class="card">
@@ -392,15 +392,15 @@ function renderFoodDB(){
   `;
   mount(html);
   document.getElementById('searchFood').onclick = queryFood;
-  document.getElementById('nav-logout').onclick = ()=>{ currentUserId=null; save('nt_current', null); renderAuth(true) };
+  document.getElementById('nav-logout').onclick = () => { currentUserId = null; save('nt_current', null); renderAuth(true) };
   document.getElementById('nav-dashboard').onclick = renderDashboard;
   document.getElementById('nav-food').onclick = renderFoodDB;
   queryFood();
 }
-function queryFood(){
+function queryFood() {
   const q = (document.getElementById('food-q').value || '').toLowerCase();
   const cat = document.getElementById('catFilter').value;
-  const results = FOOD_DB.filter(f=>{
+  const results = FOOD_DB.filter(f => {
     return (!cat || f.category === cat) && (!q || f.name.toLowerCase().includes(q) || f.vitamins?.toLowerCase().includes(q));
   });
   const list = document.getElementById('foodList');
@@ -419,13 +419,13 @@ function queryFood(){
 }
 
 /* ---------- Exercises ---------- */
-function renderExercises(){
+function renderExercises() {
   const html = `
     ${navBar()}
     <div class="card">
       <h3>Exercise Recommendations</h3>
       <div class="list">
-        ${EXERCISES.map(e=>`
+        ${EXERCISES.map(e => `
           <div class="exercise-item card">
             <img src="${e.img}" alt="${e.name}" style="width:84px;height:56px;border-radius:8px;object-fit:cover" />
             <div style="flex:1">
@@ -442,11 +442,11 @@ function renderExercises(){
   `;
   mount(html);
   document.getElementById('nav-dashboard').onclick = renderDashboard;
-  document.getElementById('nav-logout').onclick = ()=>{ currentUserId=null; save('nt_current', null); renderAuth(true) };
+  document.getElementById('nav-logout').onclick = () => { currentUserId = null; save('nt_current', null); renderAuth(true) };
 }
 
 /* ---------- Health Info ---------- */
-function renderHealthInfo(){
+function renderHealthInfo() {
   const html = `
     ${navBar()}
     <div class="card">
@@ -462,11 +462,11 @@ function renderHealthInfo(){
   `;
   mount(html);
   document.getElementById('nav-dashboard').onclick = renderDashboard;
-  document.getElementById('nav-logout').onclick = ()=>{ currentUserId=null; save('nt_current', null); renderAuth(true) };
+  document.getElementById('nav-logout').onclick = () => { currentUserId = null; save('nt_current', null); renderAuth(true) };
 }
 
 /* ---------- Profile ---------- */
-function renderProfile(user){
+function renderProfile(user) {
   const html = `
     ${navBar()}
     <div class="card">
@@ -480,16 +480,16 @@ function renderProfile(user){
       <div style="margin-top:12px">
         <label class="small-muted">Goal</label>
         <select id="profile-goal">
-          <option value="lose" ${user.goal==='lose' ? 'selected' : ''}>Lose weight</option>
-          <option value="maintenance" ${user.goal==='maintenance' ? 'selected' : ''}>Maintenance</option>
-          <option value="gain" ${user.goal==='gain' ? 'selected' : ''}>Gain weight</option>
+          <option value="lose" ${user.goal === 'lose' ? 'selected' : ''}>Lose weight</option>
+          <option value="maintenance" ${user.goal === 'maintenance' ? 'selected' : ''}>Maintenance</option>
+          <option value="gain" ${user.goal === 'gain' ? 'selected' : ''}>Gain weight</option>
         </select>
         <label class="small-muted">Activity</label>
         <select id="profile-act">
-          <option value="1.2" ${user.activity==1.2 ? 'selected':''}>Sedentary</option>
-          <option value="1.375" ${user.activity==1.375 ? 'selected':''}>Light</option>
-          <option value="1.55" ${user.activity==1.55 ? 'selected':''}>Moderate</option>
-          <option value="1.725" ${user.activity==1.725 ? 'selected':''}>Active</option>
+          <option value="1.2" ${user.activity == 1.2 ? 'selected' : ''}>Sedentary</option>
+          <option value="1.375" ${user.activity == 1.375 ? 'selected' : ''}>Light</option>
+          <option value="1.55" ${user.activity == 1.55 ? 'selected' : ''}>Moderate</option>
+          <option value="1.725" ${user.activity == 1.725 ? 'selected' : ''}>Active</option>
         </select>
         <div style="margin-top:10px">
           <button id="saveProfile">Save</button>
@@ -498,15 +498,15 @@ function renderProfile(user){
     </div>
   `;
   mount(html);
-  document.getElementById('saveProfile').onclick = ()=>{
-    const u = users.find(x=>x.id===user.id);
+  document.getElementById('saveProfile').onclick = () => {
+    const u = users.find(x => x.id === user.id);
     u.goal = document.getElementById('profile-goal').value;
     u.activity = Number(document.getElementById('profile-act').value);
     save('nt_users', users);
     alert('Saved');
     renderDashboard();
   };
-  document.getElementById('nav-logout').onclick = ()=>{ currentUserId=null; save('nt_current', null); renderAuth(true) };
+  document.getElementById('nav-logout').onclick = () => { currentUserId = null; save('nt_current', null); renderAuth(true) };
 }
 /* ---- DARK MODE ---- */
 document.addEventListener("click", (e) => {
@@ -522,7 +522,7 @@ if (localStorage.getItem("nt_theme") === "dark") {
 
 
 /* ---------- Boot / test user ---------- */
-if(users.length === 0){
+if (users.length === 0) {
   // create a demo/test user
   users.push({
     id: uid(),
@@ -538,12 +538,12 @@ if(users.length === 0){
   });
   save('nt_users', users);
 }
-if(currentUserId){
+if (currentUserId) {
   // ensure user exists
-  if(!users.find(u=>u.id===currentUserId)) currentUserId = null;
+  if (!users.find(u => u.id === currentUserId)) currentUserId = null;
   save('nt_current', currentUserId);
 }
 
 /* ---------- Start app ---------- */
-if(currentUserId) renderDashboard();
+if (currentUserId) renderDashboard();
 else renderAuth(true);

@@ -1,0 +1,27 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  background-color: #080c18;
+  color: #ffffff;
+}
+
+.glass {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+@keyframes scroll-left {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+.marquee-track {
+  animation: scroll-left 30s linear infinite;
+}
+
+.marquee-track:hover {
+  animation-play-state: paused;
+}
