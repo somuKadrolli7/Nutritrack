@@ -1,5 +1,7 @@
 'use client';
 import { useState, useRef, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { LogOut } from 'lucide-react';
 import gsap from 'gsap';
 import { useGSAP } from '@gsap/react';
 import api from '@/lib/api';
@@ -9,8 +11,14 @@ import { useUIStore } from '@/store/uiStore';
 gsap.registerPlugin(useGSAP);
 
 export default function ProfilePage() {
-  const { user, fetchMe } = useAuthStore();
+  const { user, fetchMe, logout } = useAuthStore();
   const { addToast } = useUIStore();
+  const router = useRouter();
+
+  const handleLogout = async () => {
+    await logout();
+    router.push('/login');
+  };
   
   const [form, setForm] = useState({
     name: '', age: '', weight: '', height: '',
@@ -164,11 +172,11 @@ export default function ProfilePage() {
               </button>
               <button
                 type="button"
-                className="px-5 py-3 rounded-full bg-[#8b5cf6]/15 text-[#8b5cf6] border border-[#8b5cf6]/20 font-semibold transition-all duration-300 hover:bg-[#8b5cf6]/10 hover:text-white"
-                onMouseEnter={(e) => gsap.to(e.currentTarget, { scale: 1.04, duration: 0.18 })}
-                onMouseLeave={(e) => gsap.to(e.currentTarget, { scale: 1, duration: 0.18 })}
+                onClick={handleLogout}
+                className="px-5 py-3 rounded-full bg-red-500/15 text-red-400 border border-red-500/25 font-semibold flex items-center gap-2 transition-all duration-300 hover:bg-red-500/25 hover:text-red-300 hover:scale-[1.02] cursor-pointer"
               >
-                Animate UI
+                <LogOut size={16} />
+                Logout
               </button>
             </div>
           </div>

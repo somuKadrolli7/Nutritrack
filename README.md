@@ -84,7 +84,7 @@ project2/
    ```
    MONGODB_URI=your_mongodb_connection_string
    JWT_SECRET=your_jwt_secret_key
-   GOOGLE_GENERATIVE_AI_API_KEY=your_google_api_key
+   GEMINI_API_KEY=your_google_gemini_api_key_or_google_generative_ai_key
    PORT=5000
    ```
 

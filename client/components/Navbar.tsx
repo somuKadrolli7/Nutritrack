@@ -1,8 +1,8 @@
 'use client';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
-import { Zap } from 'lucide-react';
+import { Zap, LogOut } from 'lucide-react';
 
 const NAV_LINKS = [
   { href: '/dashboard',           label: 'Dashboard' },
@@ -15,7 +15,13 @@ const NAV_LINKS = [
 
 export default function Navbar() {
   const pathname = usePathname();
-  const { user } = useAuthStore();
+  const router = useRouter();
+  const { user, logout } = useAuthStore();
+
+  const handleLogout = async () => {
+    await logout();
+    router.push('/login');
+  };
 
   return (
     <nav className="sticky top-0 z-50 w-full bg-[#0d0f1a]/80 backdrop-blur-xl border-b border-white/5">
@@ -60,6 +66,14 @@ export default function Navbar() {
               <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white text-xs font-bold">
                 {user.name?.charAt(0)?.toUpperCase() || 'U'}
               </div>
+              <button
+                onClick={handleLogout}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-red-400 hover:text-red-300 hover:bg-red-500/10 border border-red-500/20 transition-all cursor-pointer ml-1"
+                title="Logout"
+              >
+                <LogOut size={14} />
+                <span className="hidden sm:inline">Logout</span>
+              </button>
             </>
           )}
         </div>

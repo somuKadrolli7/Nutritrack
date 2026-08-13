@@ -5,7 +5,7 @@ const Achievement = require('../models/Achievement');
 const User        = require('../models/User');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 
-const aiApiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_AI_KEY;
+const aiApiKey = process.env.GEMINI_API_KEY || process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GOOGLE_AI_KEY || process.env.GENERATIVE_AI_API_KEY;
 const genAI = aiApiKey ? new GoogleGenerativeAI(aiApiKey) : null;
 const today = () => new Date().toISOString().split('T')[0]; // 'YYYY-MM-DD'
 

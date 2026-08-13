@@ -5,8 +5,9 @@ const Workout = require('../models/Workout');
 
 let genAI;
 const getAI = () => {
-  if (!genAI && process.env.GEMINI_API_KEY) {
-    genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+  if (!genAI) {
+    const key = process.env.GEMINI_API_KEY || process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GOOGLE_AI_KEY || process.env.GENERATIVE_AI_API_KEY;
+    if (key) genAI = new GoogleGenerativeAI(key);
   }
   return genAI;
 };
