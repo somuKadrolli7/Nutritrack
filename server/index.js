@@ -81,7 +81,7 @@ io.on('connection', (socket) => {
 });
 
 /* ─── Routes ─────────────────────────────────────────────── */
-app.get('/api/health', (_req, res) =>
+app.get(['/api/health', '/health'], (_req, res) =>
   res.json({ status: 'ok', timestamp: new Date().toISOString() })
 );
 
@@ -92,11 +92,19 @@ app.use('/api/health',   healthRoutes);
 app.use('/api/ai',       aiRoutes);
 app.use('/api/user',     userRoutes);
 
+// Fallback route mounts without /api prefix (handles NEXT_PUBLIC_API_URL missing /api)
+app.use('/auth',     authRoutes);
+app.use('/meals',    mealRoutes);
+app.use('/workouts', workoutRoutes);
+app.use('/health',   healthRoutes);
+app.use('/ai',       aiRoutes);
+app.use('/user',     userRoutes);
+
 const { protect } = require('./middleware/auth');
 const Meal = require('./models/Meal');
 const HealthMetric = require('./models/HealthMetric');
 
-app.get('/api/dashboard', protect, async (req, res) => {
+app.get(['/api/dashboard', '/dashboard'], protect, async (req, res) => {
   try {
     const todayStr = new Date().toISOString().split('T')[0];
     
@@ -139,7 +147,7 @@ app.get('/api/dashboard', protect, async (req, res) => {
   }
 });
 
-app.post('/api/nutrition', protect, async (req, res) => {
+app.post(['/api/nutrition', '/nutrition'], protect, async (req, res) => {
   try {
     const todayStr = new Date().toISOString().split('T')[0];
     const { water } = req.body;
