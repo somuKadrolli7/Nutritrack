@@ -23,10 +23,23 @@ const userRoutes     = require('./routes/user');
 
 const app    = express();
 const server = http.createServer(app);
-const allowedOrigins = [process.env.CLIENT_URL, 'http://localhost:3000', 'http://localhost:3002'].filter(Boolean);
-
 const corsOptions = {
-  origin: allowedOrigins,
+  origin: (origin, callback) => {
+    if (!origin) return callback(null, true);
+    
+    const clientUrl = process.env.CLIENT_URL ? process.env.CLIENT_URL.replace(/\/$/, '') : '';
+    const allowed = [clientUrl, 'http://localhost:3000', 'http://localhost:3001', 'http://localhost:3002'].filter(Boolean);
+
+    if (
+      allowed.includes(origin) ||
+      origin.endsWith('.vercel.app') ||
+      process.env.NODE_ENV !== 'production'
+    ) {
+      callback(null, true);
+    } else {
+      callback(new Error(`CORS blocked for origin: ${origin}`));
+    }
+  },
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   credentials: true,
 };

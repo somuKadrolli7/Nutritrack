@@ -109,7 +109,11 @@ export default function RegisterPage() {
       });
       router.push('/initialize');
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Registration failed. Please try again.');
+      if (err.code === 'ECONNABORTED' || err.message === 'Network Error' || !err.response) {
+        setError('The server is waking up (Render free tier spin-up). Please wait 10-15 seconds and click Create Account again!');
+      } else {
+        setError(err.response?.data?.error || 'Registration failed. Please try again.');
+      }
       setLoading(false);
     }
   };

@@ -36,7 +36,11 @@ export default function LoginPage() {
       await login(email, password);
       router.push('/initialize');
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Invalid credentials or login failed.');
+      if (err.code === 'ECONNABORTED' || err.message === 'Network Error' || !err.response) {
+        setError('The server is waking up (Render free tier spin-up). Please wait 10-15 seconds and try again!');
+      } else {
+        setError(err.response?.data?.error || 'Invalid credentials or login failed.');
+      }
       setLoading(false);
     }
   };
@@ -48,7 +52,11 @@ export default function LoginPage() {
       await login('admin@nutritrack.app', 'Password123');
       router.push('/initialize');
     } catch (err: any) {
-      setError(err.response?.data?.error || 'Quick login failed.');
+      if (err.code === 'ECONNABORTED' || err.message === 'Network Error' || !err.response) {
+        setError('The server is waking up (Render free tier spin-up). Please wait 10-15 seconds and try again!');
+      } else {
+        setError(err.response?.data?.error || 'Quick login failed.');
+      }
       setLoading(false);
     }
   };
