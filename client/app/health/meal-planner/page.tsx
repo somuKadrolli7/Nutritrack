@@ -166,7 +166,13 @@ export default function MealPlannerApp() {
       setGeneratedPlan(res.data);
     } catch (err: any) {
       console.error('Failed to generate AI plan:', err);
-      setPlanError('Could not connect to AI service. Please make sure backend is running.');
+      if (err.response?.status === 401) {
+        setPlanError('Session expired or not logged in. Please sign in to generate AI diet plans.');
+      } else if (err.code === 'ECONNABORTED' || err.message === 'Network Error' || !err.response) {
+        setPlanError('The backend server is waking up (Render free tier spin-up). Please wait 10-15 seconds and try again!');
+      } else {
+        setPlanError(err.response?.data?.error || 'Could not connect to AI service. Please try again.');
+      }
     } finally {
       setIsGenerating(false);
     }
